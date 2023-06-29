@@ -1,0 +1,5 @@
+(library
+ (public_name caml_bench)
+ (name caml_bench)
+ (libraries unix sqlite3)
+)
