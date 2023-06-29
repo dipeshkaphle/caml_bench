@@ -6,7 +6,7 @@ module Timer : sig
   val finalize : t -> unit
 end
 
-type result = {
+type result = Types.bench_result = {
   bench_name : string;
   median_exec_time : float;
   avg_exec_time : float;

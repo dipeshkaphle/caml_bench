@@ -6,7 +6,7 @@ let time_fn ~(f : Timer.t -> 'a) =
   let time_elapsed = Timer.finalize_and_get_elapsed t in
   (res, time_elapsed)
 
-type result = {
+type result = Types.bench_result = {
   bench_name : string;
   median_exec_time : float;
   avg_exec_time : float;
@@ -40,6 +40,8 @@ let run ?(pre = Fun.id) ?(post = ignore) ?(runs = 10) ~name ~f () =
     longest_exec_time = runtimes.(runs - 1);
   }
 
+let calc_delta ~old ~cur = (cur -. old) /. old *. 100.
+
 let report res =
   let name_padding =
     List.fold_left
@@ -52,6 +54,10 @@ let report res =
   in
   let f = pad_with_space in
   let g = Float.to_string in
+  Printf.printf
+    "===============================================================================\n";
+  Printf.printf
+    "===============================================================================\n";
   let () =
     Printf.printf "%s %s %s %s %s %s\n" (f "Name" name_padding)
       (f "Median(in s)" 18) (f "Avg(in s)" 18) (f "Runs" 8)
@@ -66,7 +72,30 @@ let report res =
         (f (Int.to_string x.num_of_runs) 8)
         (f (g x.longest_exec_time) 18)
         (f (g x.shortest_exec_time) 18))
-    res
+    res;
+  let db_handle = Db.init_and_get_handle "benchmarks.sqlite3" in
+  let cmp_results =
+    List.map
+      (fun x ->
+        let prior_bench_res = Db.get_latest x.bench_name db_handle in
+        Option.map
+          (fun (res : Db.db_entry) ->
+            Printf.sprintf
+              "%s | Median delta: %f%% (%f s -> %f s) | Avg delta: %f%% (%f s \
+               -> %f s) \n"
+              res.name
+              (calc_delta ~old:res.median ~cur:x.median_exec_time)
+              res.median x.median_exec_time
+              (calc_delta ~old:res.avg ~cur:x.avg_exec_time)
+              res.avg x.avg_exec_time)
+          prior_bench_res)
+      res
+  in
+  if List.for_all (fun x -> Option.is_none x) cmp_results |> not then (
+    Printf.printf
+      "===============================================================================\n";
+    List.iter (fun x -> Option.iter (fun x -> print_string x) x) cmp_results);
+  List.iter (fun x -> Db.insert x db_handle) res
 
 module Timer = struct
   include Timer

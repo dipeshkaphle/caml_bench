@@ -4,7 +4,7 @@ let () =
   let bench =
     run ~name:"test"
       ~f:(fun t ->
-        Unix.sleep 1;
+        Unix.sleepf 0.5;
         Timer.pause t;
         Unix.sleep 1;
         Timer.continue t;
