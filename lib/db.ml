@@ -9,8 +9,8 @@ let to_db_entry row headers =
   assert (headers.(2) = "avg");
   {
     name = row.(0);
-    median = row.(1) |> Float.of_string;
-    avg = row.(2) |> Float.of_string;
+    median = Float.of_string row.(1);
+    avg = Float.of_string row.(2);
   }
 
 let init_and_get_handle file =
@@ -26,7 +26,7 @@ let close t = assert (Sqlite3.db_close t)
 
 let insert (result : Types.bench_result) (t : t) =
   let sql =
-    Printf.sprintf "INSERT into %s VALUES ('%s', %f, %f ,%f)" table_name
+    Printf.sprintf "INSERT into %s VALUES ('%s', %f, %f, %f)" table_name
       result.bench_name result.median_exec_time result.avg_exec_time
       (Unix.time ())
   in

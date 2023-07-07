@@ -24,4 +24,4 @@ val run :
   unit ->
   result
 
-val report : result list -> unit
+val report : ?in':[< `S | `Ms | `Us | `Ns > `Ms ] -> result list -> unit

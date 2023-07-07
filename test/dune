@@ -1,4 +1,11 @@
 (test
  (name test)
  (libraries caml_bench)
+ (modules test)
+)
+
+(test
+ (name closure)
+ (libraries caml_bench)
+ (modules closure)
 )

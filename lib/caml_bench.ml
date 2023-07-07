@@ -1,5 +1,3 @@
-(* open Sqlite3 *)
-
 let time_fn ~(f : Timer.t -> 'a) =
   let t = Timer.create () in
   let res = f t in
@@ -29,7 +27,7 @@ let run ?(pre = Fun.id) ?(post = ignore) ?(runs = 10) ~name ~f () =
   let median =
     if runs mod 2 = 0 then
       (runtimes.((runs + 1) / 2) +. runtimes.((runs - 1) / 2)) /. 2.0
-    else runtimes.((runs + 1) / 2)
+    else runtimes.(runs / 2)
   in
   {
     bench_name = name;
@@ -42,7 +40,7 @@ let run ?(pre = Fun.id) ?(post = ignore) ?(runs = 10) ~name ~f () =
 
 let calc_delta ~old ~cur = (cur -. old) /. old *. 100.
 
-let report res =
+let report ?(in' = `Ms) res =
   let name_padding =
     List.fold_left
       (fun acc x -> Int.max acc (String.length x.bench_name))
@@ -53,15 +51,22 @@ let report res =
     x ^ String.init (len - String.length x) (fun _ -> ' ')
   in
   let f = pad_with_space in
-  let g = Float.to_string in
+  let time_unit_s =
+    match in' with `S -> "s" | `Ms -> "ms" | `Us -> "µs" | `Ns -> "ns"
+  in
+  let h x = Utils.from_seconds ~to':in' x in
+
+  let g x =
+    (* let y' = String.sub ( Float.to_string y ) *)
+    Utils.process (Float.to_string (h x)) ^ " " ^ time_unit_s
+  in
   Printf.printf
     "===============================================================================\n";
   Printf.printf
     "===============================================================================\n";
   let () =
-    Printf.printf "%s %s %s %s %s %s\n" (f "Name" name_padding)
-      (f "Median(in s)" 18) (f "Avg(in s)" 18) (f "Runs" 8)
-      (f "Max time(in s)" 18) (f "Min time(in s)" 18)
+    Printf.printf "%s %s %s %s %s %s\n" (f "Name" name_padding) (f "Median" 18)
+      (f "Avg" 18) (f "Runs" 8) (f "Max time" 18) (f "Min time" 18)
   in
   List.iter
     (fun x ->
@@ -81,13 +86,12 @@ let report res =
         Option.map
           (fun (res : Db.db_entry) ->
             Printf.sprintf
-              "%s | Median delta: %f%% (%f s -> %f s) | Avg delta: %f%% (%f s \
-               -> %f s) \n"
+              "%s | Median delta: %f%% (%s -> %s) | Avg delta: %f%% (%s -> %s) \n"
               res.name
               (calc_delta ~old:res.median ~cur:x.median_exec_time)
-              res.median x.median_exec_time
+              (g res.median) (g x.median_exec_time)
               (calc_delta ~old:res.avg ~cur:x.avg_exec_time)
-              res.avg x.avg_exec_time)
+              (g res.avg) (g x.avg_exec_time))
           prior_bench_res)
       res
   in
